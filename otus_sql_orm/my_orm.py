@@ -11,14 +11,18 @@ class DataBase:
         self.connect = sqlite3.connect(self.data_base_path)
         self.cursor = self.connect.cursor()
         self.tables = []
+        self.table_info = {}
+        self.table_name = []
 
     @staticmethod
     def prepare_columns(columns):
         prepared_column = []
-        for column in columns:
-            for name, value in column.items():
-                column = f'{name} {" ".join(value)}'
-                prepared_column.append(column)
+        for name, value in columns.items():
+            if name == 'mro' or name.startswith('__'):
+                continue
+            column = f'{name} {" ".join(value)}'
+            prepared_column.append(column)
+
         return prepared_column
 
     def init_data_base(self):
@@ -32,14 +36,20 @@ class DataBase:
             except sqlite3.OperationalError:
                 print(f'Таблица "{table.__table_name__}" уже существует')
 
+    def get_table_info(self, schema):
+        self.table_info = schema.__class__.__dict__
+        # self.table_name = self.table_info['__table_name__']
+
     def create_table(self, schema, recreate=False):
+
         if recreate:
             self.drop_table(schema)
 
-        prepared_columns = self.prepare_columns(schema.columns)
+        self.get_table_info(schema)
+        prepared_columns = self.prepare_columns(self.table_info)
         sql = ",".join(prepared_columns)
-        self.cursor.execute(f'CREATE TABLE {schema.__table_name__} ({sql})')
-        print(f'Таблица {schema.__table_name__} успешно создана')
+        self.cursor.execute(f'CREATE TABLE {schema.table_name} ({sql})')
+        print(f'Таблица {schema.table_name} успешно создана')
 
     def drop_table(self, schema):
         self.cursor.execute(f'DROP TABLE {schema.__table_name__}')
@@ -70,10 +80,3 @@ class DataBase:
         sql = f"SELECT * FROM {schema.__table_name__} WHERE {column}='{value}'"
         self.cursor.execute(sql)
         print(self.cursor.fetchall())
-
-
-db = DataBase()
-db.init_data_base()
-db.insert(News, (1, 'заголовок', 'текст'))
-db.select(News, 'title', 'заголовок')
-db.drop_table(News)
