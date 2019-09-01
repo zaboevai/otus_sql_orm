@@ -13,6 +13,7 @@ class DataBase:
         self.tables = []
         self.table_info = {}
         self.table_name = []
+        self.query = None
 
     @staticmethod
     def prepare_columns(columns):
@@ -36,17 +37,12 @@ class DataBase:
             except sqlite3.OperationalError:
                 print(f'Таблица "{table.__table_name__}" уже существует')
 
-    def get_table_info(self, schema):
-        self.table_info = schema.__class__.__dict__
-        # self.table_name = self.table_info['__table_name__']
-
     def create_table(self, schema, recreate=False):
 
         if recreate:
             self.drop_table(schema)
 
-        self.get_table_info(schema)
-        prepared_columns = schema.get_columns() #self.prepare_columns(self.table_info)
+        prepared_columns = schema.get_columns()
         sql = ",".join(prepared_columns)
         self.cursor.execute(f'CREATE TABLE {schema.__table_name__} ({sql})')
         print(f'Таблица {schema.__table_name__} успешно создана')
@@ -58,9 +54,11 @@ class DataBase:
     def insert(self, schema, values):
         try:
             id_table = {'id': None}
-            prepared_values = {**id_table, **values}
-            columns = ','.join(['?' for _ in range(len(prepared_values.keys()))])
-            self.cursor.execute(f"INSERT INTO {schema.__table_name__} VALUES ({columns})", list(prepared_values.values()))
+            for value in values:
+                prepared_values = {**id_table, **value}
+                columns = ','.join(['?' for _ in range(len(prepared_values.keys()))])
+                sql = f"INSERT INTO {schema.__table_name__} VALUES ({columns})"
+                self.cursor.execute(sql, list(prepared_values.values()))
             self.connect.commit()
             print('Запись вставлена')
         except sqlite3.IntegrityError:
@@ -85,5 +83,3 @@ class DataBase:
         sql = f"SELECT * FROM {schema.__table_name__} WHERE {self.query.keys()}={self.query.values()}"
         self.cursor.execute(sql)
         print(self.cursor.fetchall())
-
-

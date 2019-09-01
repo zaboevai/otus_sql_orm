@@ -28,6 +28,6 @@ class Post(Base):
     __table_name__ = 'post'
 
     id = Base.id
-    user_id = User.id
+    # user_id = ('INTEGER', 'FOREIGN KEY', 'NOT NULL')
     title = ('char(256)', 'null')
     text = ('char(256)', 'null')
