@@ -15,18 +15,8 @@ class DataBase:
         self.table_name = []
         self.query = None
 
-    @staticmethod
-    def prepare_columns(columns):
-        prepared_column = []
-        for name, value in columns.items():
-            if name.startswith('__'):
-                continue
-            column = f'{name} {" ".join(value)}'
-            prepared_column.append(column)
-
-        return prepared_column
-
     def init_data_base(self):
+        self.connect.execute('PRAGMA foreign_keys = ON')
         self.tables.append(News())
         self.tables.append(User())
         self.tables.append(Post())
@@ -34,8 +24,8 @@ class DataBase:
         for table in self.tables:
             try:
                 self.create_table(table)
-            except sqlite3.OperationalError:
-                print(f'Таблица "{table.__table_name__}" уже существует')
+            except BaseException as exc:
+                print(f'Таблица "{table.__table_name__}" уже существует или {exc}')
 
     def create_table(self, schema, recreate=False):
 
