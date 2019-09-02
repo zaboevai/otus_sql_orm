@@ -51,16 +51,22 @@ class DataBase:
         self.cursor.execute(f'DROP TABLE {schema.__table_name__}')
         print(f'Таблица {schema.__table_name__} удалена')
 
-    def insert(self, schema, values):
+    def insert(self, schema, insert_values):
         try:
             id_table = {'id': None}
+            values = insert_values
+
+            if isinstance(values, dict):
+                values = (values,)
+
             for value in values:
                 prepared_values = {**id_table, **value}
-                columns = ','.join(['?' for _ in range(len(prepared_values.keys()))])
+                columns = ','.join(['?' for _ in range(len(prepared_values))])
                 sql = f"INSERT INTO {schema.__table_name__} VALUES ({columns})"
                 self.cursor.execute(sql, list(prepared_values.values()))
+
             self.connect.commit()
-            print('Запись вставлена')
+            print(f'Запись вставлена в {schema.__table_name__}')
         except sqlite3.IntegrityError:
             print('Запись уже существует')
 
@@ -80,6 +86,7 @@ class DataBase:
 
     def select(self, schema, query=None):
         self.query = query or {1: 1}
-        sql = f"SELECT * FROM {schema.__table_name__} WHERE {self.query.keys()}={self.query.values()}"
-        self.cursor.execute(sql)
-        print(self.cursor.fetchall())
+        for k, v in self.query.items():
+            sql = f"SELECT * FROM {schema.__table_name__} WHERE {k}={v!r}"
+            self.cursor.execute(sql)
+            print(self.cursor.fetchall())
