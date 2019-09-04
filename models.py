@@ -4,17 +4,25 @@ class Base:
     id = ('INTEGER', 'PRIMARY KEY', 'AUTOINCREMENT')
 
     def __init__(self, **kwargs):
-        self._param = kwargs
+        self._values = kwargs
+        if 'id' not in kwargs:
+            self._values['id'] = None
 
     @property
-    def columns(self):
+    def columns_to_insert(self):
         field_names = [f'{k if k != "key" else ""} {" ".join(v)}' for k, v in self.__class__.__dict__.items()
                        if not k.startswith('__')]
         return field_names
 
     @property
-    def param(self):
-        return self._param
+    def columns_names(self):
+        field_names = [f'{k if k != "key" else ""}' for k in self.__class__.__dict__.keys()
+                       if not k.startswith('__')]
+        return field_names
+
+    @property
+    def values(self):
+        return self._values
 
 
 class News(Base):
@@ -37,9 +45,3 @@ class Post(Base):
     user_id = ('INTEGER', 'REFERENCES user(id)')
     title = ('char(256)', 'not null')
     text = ('char(256)', 'not null')
-
-
-row = News(id='1', title='123', text='asd')
-
-print(row.columns)
-print(row.param)
