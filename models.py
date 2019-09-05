@@ -10,7 +10,7 @@ class Base:
 
     @property
     def columns_to_insert(self):
-        field_names = [f'{k if k != "key" else ""} {" ".join(v)}' for k, v in self.__class__.__dict__.items()
+        field_names = [f'{k} {" ".join(v)}' for k, v in self.__class__.__dict__.items()
                        if not k.startswith('__')]
         return field_names
 
@@ -23,6 +23,14 @@ class Base:
     @property
     def values(self):
         return self._values
+
+    def get_foreign_key(self):
+        field_names = [f'{column}' for column, value in self.__class__.__dict__.items()
+                       if not column.startswith('__') and 'REFERENCES' in value]
+        return field_names
+
+    def __str__(self):
+        return self.__table_name__
 
 
 class News(Base):
@@ -42,6 +50,6 @@ class Post(Base):
     __table_name__ = 'post'
 
     id = Base.id
-    user_id = ('INTEGER', 'REFERENCES user(id)')
+    user = ('INTEGER', 'REFERENCES', f'{User()}(id)')
     title = ('char(256)', 'not null')
     text = ('char(256)', 'not null')

@@ -5,23 +5,25 @@ db = DataBase()
 db.init_data_base()
 
 db.insert(User(name='Admin'))
-
 rows = (News(title='Заголовок 1', text='Новость 1'),
         News(title='Заголовок 2', text='Новость 2'),
-        Post(user_id=1, title='Заголовок 3', text='Новость 3'))
+        Post(user=1, title='Заголовок 3', text='Новость 3'))
 
-db.insert(rows)
+db.insert(rows=rows)
 
 rows = News(title='Заголовок 3', text='Новость 3')
-db.insert(rows)
+db.insert(rows=rows)
 
-db.select(News, )
-db.select(News, {'title': 'Заголовок 2', 'text': 'Новость 2'})
+db.select(schema=News(), )
+db.select(schema=News(), where_param={'title': 'Заголовок 2', 'text': 'Новость 2'})
 
-db.insert(Post(user_id=2, title='Заголовок 3', text='Новость 3'))
+db.insert(Post(user=2, title='Заголовок 3', text='Новость 3'))
 
-db.select(Post, {'title': 'Заголовок 3'})
-db.delete(News, ('title', 'Заголовок 2'))
-db.update(Post, ('text', 'Новость 1321233'), ('title', 'Заголовок 3'))
+db.select(schema=Post(), where_param={'title': 'Заголовок 3'})
 
-# db.drop_table(News)
+db.select(schema=Post(), join_schema=User(), where_param={'title': 'Заголовок 3'})
+
+db.delete(schema=News(), where_param={'title': 'Заголовок 2'})
+db.update(schema=Post(), set_param={'text': 'Новость 1321233'}, where_param={'title': 'Заголовок 3'})
+
+db.drop_table(News())

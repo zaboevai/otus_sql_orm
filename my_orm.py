@@ -11,7 +11,6 @@ class DataBase:
         self.connect = sqlite3.connect(self.data_base_path)
         self.cursor = self.connect.cursor()
         self.tables = []
-        self.query = None
 
     def init_data_base(self):
         """
@@ -41,8 +40,8 @@ class DataBase:
 
         prepared_columns = schema.columns_to_insert
         sql = ",".join(prepared_columns)
-        self.cursor.execute(f'CREATE TABLE {schema.__table_name__} ({sql})')
-        print(f'Таблица {schema.__table_name__} успешно создана')
+        self.cursor.execute(f'CREATE TABLE {schema} ({sql})')
+        print(f'Таблица {schema} успешно создана')
 
     def drop_table(self, schema):
         """
@@ -50,8 +49,8 @@ class DataBase:
         :param schema: table class
         :return:
         """
-        self.cursor.execute(f'DROP TABLE {schema.__table_name__}')
-        print(f'Таблица {schema.__table_name__} удалена')
+        self.cursor.execute(f'DROP TABLE {schema}')
+        print(f'Таблица {schema} удалена')
 
     def insert(self, rows):
         """
@@ -70,9 +69,9 @@ class DataBase:
                     values.append(row.values[column])
                 columns = ','.join(['?' for _ in columns])
 
-                sql = f"INSERT INTO {row.__table_name__} VALUES ({columns})"
+                sql = f"INSERT INTO {row} VALUES ({columns})"
                 self.cursor.execute(sql, values)
-                print(f'Запись вставлена в {row.__table_name__}')
+                print(f'Запись вставлена в {row}')
             except sqlite3.IntegrityError as exc:
                 print(f'Запись уже существует или "{exc}"')
                 continue
@@ -87,40 +86,51 @@ class DataBase:
         :param where_param:
         :return:
         """
-        sql = f"""
-        UPDATE {schema.__table_name__} 
-        SET {set_param[0]} = '{set_param[1]}' 
-        WHERE {where_param[0]} = '{where_param[1]}'
-        """
+        sql_set = [f"{column}={value!r}" for column, value in set_param.items()]
+        sql_set = f"\n SET " + ', '.join(map(str, sql_set))
+
+        sql_where = [f"{column}={value!r}" for column, value in where_param.items()]
+        sql_where = f"\n WHERE " + ' and '.join(map(str, sql_where))
+
+        sql = f'UPDATE {schema}' + sql_set + sql_where
+
         self.cursor.execute(sql)
         self.connect.commit()
-        print(f'Запись {where_param} обновлена на {set_param} из таблицы {schema.__table_name__}')
+        print(f'Запись {where_param} обновлена на {set_param} из таблицы {schema}')
 
-    def delete(self, schema, column):
+    def delete(self, schema, where_param):
         """
         Delete data from table
         :param schema:
-        :param column:
+        :param where_param:
         :return:
         """
-        sql = f"DELETE FROM {schema.__table_name__} WHERE {column[0]} = '{column[1]}'"
+        sql_query = [f"{column}={value!r}" for column, value in where_param.items()]
+        sql_where = f"WHERE " + ' and '.join(map(str, sql_query))
+        sql = f"DELETE FROM {schema} " + sql_where
         self.cursor.execute(sql)
         self.connect.commit()
-        print(f'Запись {column} удалена из таблицы {schema.__table_name__}')
+        print(f'Запись {where_param} удалена из таблицы {schema}')
 
-    def select(self, schema, query=None):
+    def select(self, schema, join_schema=None, where_param=None):
         """
         Select data from table
         :param schema:
-        :param query:
+        :param join_schema:
+        :param where_param:
         :return:
         """
-        self.query = query or {1: 1}
+        where_param = where_param or {1: 1}
 
-        res = [f"{column}={value!r}" for column, value in self.query.items()]
-        where = f"WHERE " + ' and '.join(map(str, res))
-        sql = f"SELECT * FROM {schema.__table_name__}\n" + where
+        sql_where = [f"{column}={value!r}" for column, value in where_param.items()]
+        sql_where = f"\n WHERE " + ' and '.join(map(str, sql_where))
+        sql_join = ''
 
-        join = ''  # f'join {} on {} \n'
+        if join_schema:
+            fk = schema.get_foreign_key()
+            sql_join = f'\n JOIN {join_schema} on {schema}.{fk[0]}={join_schema}.id'
+
+        sql = f"SELECT * FROM {schema}\n" + sql_join + sql_where
+
         self.cursor.execute(sql)
         print(self.cursor.fetchall())
